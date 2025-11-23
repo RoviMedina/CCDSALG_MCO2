@@ -33,9 +33,9 @@ public class mco2 {
 
 
     //----------------------------------------------------------------------------------------------------------------------------------------
-    //#1 HASH TABLE ALGORITHM
+    //#1 HASH FUNCTION ALGORITHM
     //----------------------------------------------------------------------------------------------------------------------------------------
-    public static void hashTableAlgo(String S, int k){
+    public static void hashFuncAlgo(String S, int k, int mode){
 
         int n = S.length();
         int collisionCount = 0;
@@ -43,55 +43,124 @@ public class mco2 {
         LinkedList<String> orderedHashTable = new LinkedList<>(); //this is to preserve the order of discovery of the substrings
 
         long startTime = System.nanoTime();
+        long endTime;
+        double durationTime;
         for(int i = 0; i < n; i++){
             hashTable[i] = new LinkedList<>();
         }
 
-        //generates all the substrings of length k based from the given k-mer and assigns them their respective 1 digit hash
-        for(int i = 0; i <= n - k; i++){
-            String kmerCurr = S.substring(i, i + k);
+        switch(mode){
+            case 1: //Rolling Polynomial
+                //generates all the substrings of length k based from the given k-mer and assigns them their respective 1 digit hash
+                for(int i = 0; i <= n - k; i++){
+                    String kmerCurr = S.substring(i, i + k);
 
-            int h = kmerCurr.hashCode();
-            int index = Math.floorMod(h, n);
+                    int h = kmerCurr.hashCode();
+                    int index = Math.floorMod(h, n);
 
-            //for substrings that were already found previously
-            boolean found = false;
-            for(kmerEntry entry : hashTable[index]){
-                if(entry.kmerString.equals(kmerCurr)){
-                    entry.count++;
-                    found = true;
-                    break;
+                    //for substrings that were already found previously
+                    boolean found = false;
+                    for(kmerEntry entry : hashTable[index]){
+                        if(entry.kmerString.equals(kmerCurr)){
+                            entry.count++;
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    //for new substrings
+                    if(!found){
+                        if(!hashTable[index].isEmpty()){
+                            collisionCount++;
+                        }
+                        hashTable[index].add(new kmerEntry(kmerCurr, 1));
+                        orderedHashTable.add(kmerCurr);
+                    }
                 }
-            }
+                endTime = System.nanoTime();
 
-            //for new substrings
-            if(!found){
-                hashTable[index].add(new kmerEntry(kmerCurr, 1));
-                orderedHashTable.add(kmerCurr);
-                if(!hashTable[index].isEmpty()){
-                    collisionCount++;
+                //for loop for displaying the kmer distribution
+                System.out.println("K-mer Distribution Using Hash");
+                for(String kmer : orderedHashTable){
+                    int h = kmer.hashCode();
+                    int index = Math.floorMod(h, n);
+
+                    for(kmerEntry entry : hashTable[index]){
+                        if(entry.kmerString.equals(kmer)){
+                            System.out.println(kmer + " -> " + entry.count);
+                        }
+                    }
                 }
-            }
+                System.out.println("Number of collisions: " + collisionCount);
+                durationTime = (endTime - startTime) / 1000000.0;
+                System.out.println("==============================");
+                System.out.println("Runtime: " + durationTime + " ms");
+                System.out.println("==============================");
+                break;
+            case 2: //FNV-1A
+                //generates all the substrings of length k based from the given k-mer and assigns them their respective 1 digit hash
+                for(int i = 0; i <= n - k; i++){
+                    String kmerCurr = S.substring(i, i + k);
+
+                    int h = fnv1aAlgo(kmerCurr);
+                    int index = Math.floorMod(h, n);
+
+                    //for substrings that were already found previously
+                    boolean found = false;
+                    for(kmerEntry entry : hashTable[index]){
+                        if(entry.kmerString.equals(kmerCurr)){
+                            entry.count++;
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    //for new substrings
+                    if(!found){
+                        if(!hashTable[index].isEmpty()){
+                            collisionCount++;
+                        }
+                        hashTable[index].add(new kmerEntry(kmerCurr, 1));
+                        orderedHashTable.add(kmerCurr);
+                    }
+                }
+                endTime = System.nanoTime();
+
+                //for loop for displaying the kmer distribution
+                System.out.println("K-mer Distribution Using Hash");
+                for(String kmer : orderedHashTable){
+                    int h = fnv1aAlgo(kmer);
+                    int index = Math.floorMod(h, n);
+
+                    for(kmerEntry entry : hashTable[index]){
+                        if(entry.kmerString.equals(kmer)){
+                            System.out.println(kmer + " -> " + entry.count);
+                        }
+                    }
+                }
+                System.out.println("Number of collisions: " + collisionCount);
+                durationTime = (endTime - startTime) / 1000000.0;
+                System.out.println("==============================");
+                System.out.println("Runtime: " + durationTime + " ms");
+                System.out.println("==============================");
+                break;
         }
-        long endTime = System.nanoTime();
+    }
 
-        //for loop for displaying the kmer distribution
-        System.out.println("K-mer Distribution Using Hash");
-        for(String kmer : orderedHashTable){
-            int h = kmer.hashCode();
-            int index = Math.floorMod(h, n);
+    //----------------------------------------------------------------------------------------------------------------------------------------
+    //#1.b FNV-1A HASH
+    //----------------------------------------------------------------------------------------------------------------------------------------
+    public static int fnv1aAlgo(String input){
+        final int FNV_PRIME = 0x01000193;
+        final int FNV_OFFSET_BASIS = 0x811C9DC5;
 
-            for(kmerEntry entry : hashTable[index]){
-                if(entry.kmerString.equals(kmer)){
-                    System.out.println(kmer + " -> " + entry.count);
-                }
-            }
+        int hash = FNV_OFFSET_BASIS;
+
+        for(int i = 0; i < input.length(); i++){
+            hash ^= input.charAt(i);
+            hash *= FNV_PRIME;
         }
-        System.out.println("Number of collisions: " + collisionCount);
-        double durationTime = (endTime - startTime) / 1000000.0;
-        System.out.println("==============================");
-        System.out.println("Runtime: " + durationTime + " ms");
-        System.out.println("==============================");
+        return hash;
     }
 
 
@@ -198,9 +267,30 @@ public class mco2 {
             }
             switch(choice2){
                 case 1:
-                    System.out.println("Has Table Algorithm:");
                     System.out.println("==============================");
-                    hashTableAlgo(S, k);
+                    System.out.println("Chose Hash Function Algorithm");
+                    System.out.println("1. Rolling Polynomial");
+                    System.out.println("2. FNV-1A");
+                    System.out.println("0. Back");
+                    int mode = sc.nextInt();
+                    while((mode < 0 || mode > 2) && mode != 0){
+                        System.out.println("INVALID CHOICE! Please chose again");
+                        mode = sc.nextInt();
+                    }
+                    switch(mode){
+                        case 1:
+                            System.out.println("==============================");
+                            System.out.println("Rolling Polynomial Algorithm:");
+                            System.out.println("==============================");
+                            hashFuncAlgo(S, k, mode);
+                            break;
+                        case 2:
+                            System.out.println("==============================");
+                            System.out.println("FNV-1A Algorithm:");
+                            System.out.println("==============================");
+                            hashFuncAlgo(S, k, mode);
+                            break;
+                    }
                     break;
                 case 2:
                     System.out.println("Binary Search Tree Algorithm:");
